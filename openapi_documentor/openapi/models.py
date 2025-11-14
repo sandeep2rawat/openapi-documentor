@@ -11,6 +11,7 @@ except ImportError:
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from openapi_spec_validator import validate_spec
 from taggit.managers import TaggableManager
@@ -57,6 +58,8 @@ class Document(models.Model):
         parsed_doc = self._parse_doc(self.doc)
         if not parsed_doc:
             raise ValidationError(_("Only Json and Yaml are allowed"))
+        if not settings.VALIDATE_SPEC:
+            return
         try:
             validate_spec(parsed_doc)
         except:  # noqa: E722
@@ -65,7 +68,7 @@ class Document(models.Model):
     def save(self, *args, **kwargs):
         parsed_doc = self._parse_doc(self.doc)
         if parsed_doc:
-            self.formatted = json.dumps(parsed_doc)
+            self.formatted = json.dumps(parsed_doc, default=str)
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
